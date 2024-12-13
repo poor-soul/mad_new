@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '-i', 
     '--input', 
-    default='input/inference_data/deer_short.mp4', 
+    default='input/inference_data/video_1.mp4', 
     help='path to the input data'
 )
 parser.add_argument(
@@ -39,7 +39,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-OUT_DIR = os.path.join('outputs', 'inference1')
+OUT_DIR = os.path.join('outputs', 'inference')
 os.makedirs(OUT_DIR, exist_ok=True)
 
 model = torchvision.models.detection.maskrcnn_resnet50_fpn(
@@ -52,7 +52,7 @@ model.roi_heads.mask_predictor.mask_fcn_logits = nn.Conv2d(256, len(class_names)
 print(model)
 
 # initialize the model
-ckpt = torch.load(args.weights, map_location=torch.device('cpu'))
+ckpt = torch.load(args.weights)
 model.load_state_dict(ckpt['model'])
 # set the computation device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -69,17 +69,12 @@ frame_width = int(cap.get(3))
 frame_height = int(cap.get(4))
 frame_fps = int(cap.get(5))
 save_name = args.input.split(os.path.sep)[-1].split('.')[0]
-#Extra
-output_path = os.path.join(OUT_DIR, f"{save_name}.mp4")
-print(f"Saving video to: {output_path}")
+# Define codec and create VideoWriter object.
 out = cv2.VideoWriter(
-    output_path,
-    cv2.VideoWriter_fourcc(*'mp4v'),
-    frame_fps,
+    f"{OUT_DIR}/{save_name}.mp4", 
+    cv2.VideoWriter_fourcc(*'mp4v'), frame_fps, 
     (frame_width, frame_height)
 )
-
-print(f"Frame Width: {frame_width}, Frame Height: {frame_height}, Frame FPS: {frame_fps}") #Extra
 
 frame_count = 0 # To count total frames.
 total_fps = 0 # To get the final frames per second.
@@ -96,7 +91,7 @@ while (cap.isOpened()):
         # add a batch dimension
         image = image.unsqueeze(0).to(device)
         start_time = time.time()
-        masks, boxes, labels = get_outputs(image, model, args.threshold)
+        masks, boxes, labels, scores = get_outputs(image, model, args.threshold)
         end_time = time.time()
         # Get the current fps.
         fps = 1 / (end_time - start_time)
@@ -105,7 +100,7 @@ while (cap.isOpened()):
         # Increment frame count.
         frame_count += 1
         print(f"Frame {frame_count}, FPS: {fps:.1f}")
-        result = draw_segmentation_map(orig_image, masks, boxes, labels)
+        result = draw_segmentation_map(orig_image, masks, boxes, labels, scores)
         cv2.putText(
             result,
             text=f"{fps:.1f} FPS",
@@ -125,9 +120,6 @@ while (cap.isOpened()):
     else:
         break
 
-print(f"Total frames processed: {frame_count}")
-
-
 # Release VideoCapture().
 cap.release()
 # Close all frames and video windows.
@@ -136,4 +128,3 @@ cv2.destroyAllWindows()
 # Calculate and print the average FPS.
 avg_fps = total_fps / frame_count
 print(f"Average FPS: {avg_fps:.3f}")
-out.release()
