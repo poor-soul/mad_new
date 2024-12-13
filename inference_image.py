@@ -8,7 +8,7 @@ import glob
 import os
 
 from PIL import Image
-from infer_utils_image import draw_segmentation_map, get_outputs
+from infer_utils import draw_segmentation_map, get_outputs
 from torchvision.transforms import transforms as transforms
 from class_names import INSTANCE_CATEGORY_NAMES as class_names
 
