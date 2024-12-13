@@ -30,9 +30,14 @@ def get_outputs(image, model, threshold):
     boxes = boxes[:thresholded_preds_count]
     # get the classes labels
     labels = [coco_names[i] for i in outputs[0]['labels']]
-    return masks, boxes, labels
 
-def draw_segmentation_map(image, masks, boxes, labels):
+    scores = scores[:thresholded_preds_count]
+    #print(f"Scores: {scores}")
+
+
+    return masks, boxes, labels, scores # additional scores
+
+def draw_segmentation_map(image, masks, boxes, labels, scores):
     alpha = 1.0
     beta = 0.5 # transparency for the segmentation map
     gamma = 0 # scalar added to each sum
@@ -56,8 +61,10 @@ def draw_segmentation_map(image, masks, boxes, labels):
             # draw the bounding boxes around the objects
             cv2.rectangle(image, boxes[i][0], boxes[i][1], color=color, 
                         thickness=2)
+            label_text = f"{labels[i]}: {scores[i]:.2f}"
+
             # put the label text above the objects
-            cv2.putText(image , labels[i], (boxes[i][0][0], boxes[i][0][1]-10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, color, 
-                        thickness=2, lineType=cv2.LINE_AA)
+            cv2.putText(image, label_text, (boxes[i][0][0], boxes[i][0][1] - 15), 
+            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
+
     return image
